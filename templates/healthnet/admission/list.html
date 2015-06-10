@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load app_filters %}
+{% block title %}View Admitted Patients{% endblock %}
+{% block sidebar_admission %}active{% endblock %}
+{% block body_header %}
+    View Admitted Patients
+    <br>
+    <a class="btn btn-success btn-sm" href="/admission/admit/" role="button">Admit Patient</a>
+{% endblock %}
+{% block body %}
+    <table id="datatable" class="table table-hover table-striped table-bordered">
+        <thead>
+            <th>Patient</th>
+            <th>Reason</th>
+            <th>Hospital</th>
+            <th>Time</th>
+            <th>Time of Discharge</th>
+            <th>Status</th>
+            <th>Description</th>
+            <th>Options</th>
+        </thead>
+        <tbody>
+            {% for admission in query %}
+                <tr>
+                    <td>{{ admission.account.profile }}</td>
+                    <td>{{ admission.reason }}</td>
+                    <td>{{ admission.hospital.name }}</td>
+                    <td>{{ admission.timestamp }}</td>
+                    <td>{{ admission.discharged_timestamp }}</td>
+                    <td>{% if admission.active %}Admitted{% else %}Discharged{% endif %}</td>
+                    <td>
+                        <script type="text/javascript">
+                            function proxyDesc{{ admission.pk }}() {
+                                configureDescription({% autoescape on %}
+                                        {{ admission.pk }},
+                                        '{{ admission.description }}'
+                                    {% endautoescape %});
+                            };
+                        </script>
+                        <button onclick="proxyDesc{{ admission.pk }}()" type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#form-modal">View Description</button></td>
+                    <td>
+                    {% if admission.active and user.account.role == 30 %}
+                        <script type="text/javascript">
+                            function proxy{{ admission.pk }}() {
+                                configureModal({% autoescape on %}
+                                        {{ admission.pk }},
+                                        '{{ admission.account.profile }}'
+                                    {% endautoescape %});
+                            };
+                        </script>
+                        <button onclick="proxy{{ admission.pk }}()" type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#form-modal">Discharge</button>
+                    {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include "form_modal.html" %}
+    <script type="text/javascript">
+        function configureModal(pk, profile){
+            document.getElementById('form-modal-title').innerHTML = 'Discharge confirmation';
+            document.getElementById('form-modal-body').innerHTML = 'Are you sure you want to discharge '.concat(profile, '?');
+            document.getElementById('form-modal-hidden').value = pk;
+            document.getElementById('form-modal-submit').style.display = 'initial';
+            document.getElementById('form-modal-submit').value = 'Discharge';
+            document.getElementById('form-modal-submit').name = 'discharge';
+        }
+
+        function configureDescription(pk, description){
+            document.getElementById('form-modal-title').innerHTML = 'Description View';
+            document.getElementById('form-modal-body').innerHTML = 'Description of admission: '.concat(description);
+             document.getElementById('form-modal-body').style.wordWrap = "break-word"
+            document.getElementById('form-modal-submit').style.display = 'none';
+
+        }
+        $(document).ready(function() {
+            $('#datatable').DataTable({
+                "order": [[ 3, "desc" ]],
+                "columnDefs": [
+                    { "orderable": false, "targets": 6 },
+                    { "searchable": false, "targets": 6 },
+                    { "orderable": false, "targets": 7 },
+                    { "searchable": false, "targets": 7 }
+                ]
+            });
+        } );
+    </script>
+{% endblock %}
